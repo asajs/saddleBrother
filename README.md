@@ -6,3 +6,4 @@ If you'd like to play it right off the bat and have a Windows 10 machine, then g
 
 I'd love some help developing it if you have the time/inclination. Feel free to look at the issues!
 
+This game was created in python 3.6, using pycharm. It is reccomended that you have the same setup.
