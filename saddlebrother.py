@@ -1,7 +1,8 @@
 from os import path, chdir
 import arcade
-import heapq
 import random
+import Character
+import CellularAutomata
 
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 1000
@@ -18,299 +19,6 @@ EMPTY = ' '
 WALL = '#'
 AGENT = '@'
 GOAL = 'x'
-
-
-class Character:
-    def __init__(self, symbol):
-        self.symbol = symbol
-        self.x = 0
-        self.y = 0
-
-    def move(self, input, map):
-        input = str(input).lower()
-        if input == "w" and self.y + 1 < len(map) and map[self.y + 1][self.x] != WALL:
-            self.y += 1
-        elif input == "a" and self.x - 1 > 0 and map[self.y][self.x - 1] != WALL:
-            self.x -= 1
-        elif input == "s" and self.y - 1 > 0 and map[self.y - 1][self.x] != WALL:
-            self.y -= 1
-        elif input == "d" and self.x + 1 < len(map[self.y]) and map[self.y][self.x + 1] != WALL:
-            self.x += 1
-
-
-class MazeGenerator:
-    @staticmethod
-    def adjacent(cell):
-        i, j = cell
-        for (y, x) in ((1, 0), (0, 1), (-1, 0), (0, -1)):
-            yield (i + y, j + x), (i + 2 * y, j + 2 * x)
-
-    @staticmethod
-    def generate(self, width, height):
-        """Generates a maze as a list of strings.
-           :param width: the width of the maze, not including border walls.
-           :param height: height of the maze, not including border walls.
-        """
-        # add 1 for border walls.
-
-        width += 1
-        height += 1
-        rows, cols = height, width
-
-        maze = {}
-
-        spaceCells = set()
-        connected = set()
-        walls = set()
-
-        # Initialize with grid.
-        for i in range(rows):
-            for j in range(cols):
-                if (i % 2 == 1) and (j % 2 == 1):
-                    maze[(i, j)] = EMPTY
-                else:
-                    maze[(i, j)] = WALL
-
-        # Fill in border.
-        for i in range(rows):
-            maze[(i, 0)] = WALL
-            maze[(i, cols - 1)] = WALL
-        for j in range(cols):
-            maze[(0, j)] = WALL
-            maze[(rows - 1, j)] = WALL
-
-        for i in range(rows):
-            for j in range(cols):
-                if maze[(i, j)] == EMPTY:
-                    spaceCells.add((i, j))
-                if maze[(i, j)] == WALL:
-                    walls.add((i, j))
-
-        # Prim's algorithm to knock down walls.
-        originalSize = len(spaceCells)
-        connected.add((1, 1))
-        while len(connected) < len(spaceCells):
-            doA, doB = None, None
-            cns = list(connected)
-            random.shuffle(cns)
-            for (i, j) in cns:
-                if doA is not None: break
-                for A, B in self.adjacent((i, j)):
-                    if A not in walls:
-                        continue
-                    if (B not in spaceCells) or (B in connected):
-                        continue
-                    doA, doB = A, B
-                    break
-            A, B = doA, doB
-            maze[A] = EMPTY
-            walls.remove(A)
-            spaceCells.add(A)
-            connected.add(A)
-            connected.add(B)
-            # if verbose:
-            #     cs, ss = len(connected), len(spaceCells)
-            #     cs += (originalSize - ss)
-            #     ss += (originalSize - ss)
-            #     if cs % 10 == 1:
-            #         print('%s/%s cells connected ...' % (cs, ss), file=sys.stderr)
-
-        lines = []
-        for i in range(rows):
-            lines.append(''.join(maze[(i, j)] for j in range(cols)))
-
-        return lines
-
-
-class CellularAutomata:
-    def __init__(self):
-        self.number_of_steps = 2
-        self.chance_to_stay_alive = 0.4
-        self.death_limit = 3
-        self.birth_limit = 4
-
-    @staticmethod
-    def create_grid(width, height):
-        """ Create a two-dimensional grid of specified size. """
-        return [[0 for _x in range(width)] for _y in range(height)]
-
-    def initialize_grid(self, grid):
-        """ Randomly set grid locations to on/off based on chance. """
-        height = len(grid)
-        width = len(grid[0])
-        for row in range(height):
-            for column in range(width):
-                if random.random() <= self.chance_to_stay_alive:
-                    grid[row][column] = 1
-
-    @staticmethod
-    def count_alive_neighbors(grid, x, y):
-        """ Count neighbors that are alive. """
-        height = len(grid)
-        width = len(grid[0])
-        alive_count = 0
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                neighbor_x = x + i
-                neighbor_y = y + j
-                if i == 0 and j == 0:
-                    continue
-                elif neighbor_x < 0 or neighbor_y < 0 or neighbor_y >= height or neighbor_x >= width:
-                    # Edges are considered alive. Makes map more likely to appear naturally closed.
-                    alive_count += 1
-                elif grid[neighbor_y][neighbor_x] == 1:
-                    alive_count += 1
-        return alive_count
-
-    def do_simulation_step(self, old_grid):
-        """ Run a step of the cellular automaton. """
-        height = len(old_grid)
-        width = len(old_grid[0])
-        new_grid = self.create_grid(width, height)
-        for x in range(width):
-            for y in range(height):
-                alive_neighbors = self.count_alive_neighbors(old_grid, x, y)
-                if old_grid[y][x] == 1:
-                    if alive_neighbors < self.death_limit:
-                        new_grid[y][x] = 0
-                    else:
-                        new_grid[y][x] = 1
-                else:
-                    if alive_neighbors > self.birth_limit:
-                        new_grid[y][x] = 1
-                    else:
-                        new_grid[y][x] = 0
-        return new_grid
-
-    def generate(self, width, height):
-        automata_map = self.create_grid(width, height)
-        self.initialize_grid(automata_map)
-        for step in range(self.number_of_steps):
-            automata_map = self.do_simulation_step(automata_map)
-
-        ascii_map = self.make_ascii_map(automata_map)
-        self.validate_map(ascii_map)
-        return ascii_map
-
-    @staticmethod
-    def make_ascii_map(automata_map):
-        ascii_map = list()
-        for row in range(len(automata_map)):
-            temp_row = list()
-            for col in range(len(automata_map[0])):
-                if automata_map[row][col] == 1:
-                    temp_row.append("#")
-                else:
-                    temp_row.append(" ")
-            ascii_row = ''.join(temp_row)
-            ascii_map.append(ascii_row)
-        return ascii_map
-
-    def validate_map(self, ascii_map):
-        unvisited = set()
-        visited = set()
-        local = set()
-        for _y in range(len(ascii_map)):
-            for _x in range(len(ascii_map[0])):
-                if ascii_map[_y][_x] == " ":
-                    unvisited.add((_y, _x))
-
-
-        while len(unvisited) > 0:
-            coord = unvisited.pop()
-            # wander around a local space to see if we can reach every corner
-            while True:
-                self.helper_for_sets((coord[0] + 1, coord[1]), unvisited, visited, local)
-                self.helper_for_sets((coord[0] - 1, coord[1]), unvisited, visited, local)
-                self.helper_for_sets((coord[0], coord[1] + 1), unvisited, visited, local)
-                self.helper_for_sets((coord[0], coord[1] - 1), unvisited, visited, local)
-                if len(local) == 0:
-                    break
-                coord = local.pop()
-
-            # we failed to reach every corner if this is true
-            if len(unvisited) > 0:
-                # now to make paths in the map to another corner
-                # don't forget to add them back in
-                visited_coord = visited.pop()
-                visited.add(visited_coord)
-                unvisited_coord = unvisited.pop()
-                unvisited.add(unvisited_coord)
-                self.make_paths_in_map(ascii_map, visited_coord, unvisited_coord)
-                # This is ugly and gross, but I'm just curious... Rational: the map is different now
-                unvisited.clear()
-                visited.clear()
-                for _y in range(len(ascii_map)):
-                    for _x in range(len(ascii_map[0])):
-                        if ascii_map[_y][_x] == " ":
-                            unvisited.add((_y, _x))
-
-    def make_paths_in_map(self, ascii_map, visited_coord, unvisited_coord):
-        # first "walk" the coordinates to each other
-        visited_coord = self.greedy_best_search(visited_coord, unvisited_coord, ascii_map)
-        unvisited_coord = self.greedy_best_search(unvisited_coord, visited_coord, ascii_map)
-        vy = visited_coord[0]
-        vx = visited_coord[1]
-        uy = unvisited_coord[0]
-        ux = unvisited_coord[1]
-        while vy != uy or vx != ux:
-            if vy < uy:
-                vy += 1
-                ascii_map[vy] = ascii_map[vy][:vx] + " " + ascii_map[vy][vx + 1:]
-            elif vy > uy:
-                vy -= 1
-                ascii_map[vy] = ascii_map[vy][:vx] + " " + ascii_map[vy][vx + 1:]
-            if vx < ux:
-                vx += 1
-                ascii_map[vy] = ascii_map[vy][:vx] + " " + ascii_map[vy][vx + 1:]
-            elif vx > ux:
-                vx -= 1
-                ascii_map[vy] = ascii_map[vy][:vx] + " " + ascii_map[vy][vx + 1:]
-
-    @staticmethod
-    def manhattan_distance(x, y):
-        return abs(x[0] - y[0]) + abs(x[1] - y[1])
-
-    def greedy_best_search(self, start, goal, ascii_map):
-        i = 0
-        frontier = []
-        heapq.heappush(frontier, [0, i, start])
-        best_so_far = (self.manhattan_distance(start, goal), start)
-        came_from = {}
-        came_from[start] = None
-
-        while len(frontier) > 0:
-            _, _, current = heapq.heappop(frontier)
-
-            neighbors = list()
-
-            if current[0] - 1 > 0 and ascii_map[current[0] - 1][current[1]] == " ":
-                neighbors.append((current[0] - 1, current[1]))
-            if current[0] + 1 < len(ascii_map) and ascii_map[current[0] + 1][current[1]] == " ":
-                neighbors.append((current[0] + 1, current[1]))
-            if current[1] - 1 > 0 and ascii_map[current[0]][current[1] - 1] == " ":
-                neighbors.append((current[0], current[1] - 1))
-            if current[1] + 1 < len(ascii_map[current[0]]) and ascii_map[current[0]][current[1] + 1] == " ":
-                neighbors.append((current[0], current[1] + 1))
-
-            for next in neighbors:
-                if next not in came_from:
-                    i += 1
-                    priority = self.manhattan_distance(next, goal)
-                    if priority < best_so_far[0]:
-                        best_so_far = (priority, current)
-                    heapq.heappush(frontier, [priority, i, next])
-                    came_from[next] = current
-
-        return best_so_far[1]
-
-    @staticmethod
-    def helper_for_sets(coord, unvisited, visited, local):
-        if coord in unvisited:
-            unvisited.remove(coord)
-            if coord not in visited:
-                visited.add(coord)
-                local.add(coord)
 
 
 def insert_symbol_into_random_empty_spot(map, actor, symbol):
@@ -364,13 +72,13 @@ class MainWindow(arcade.Window):
         self.ground_list = arcade.SpriteList()
         self.score = 0
 
-        map = CellularAutomata()
+        map = CellularAutomata.CellularAutomata(WALL, EMPTY)
         # max_tile_wide = int((SCREEN_WIDTH - (SCREEN_WIDTH % IMAGE_SIZE)) / IMAGE_SIZE)
         # max_tile_high = int((SCREEN_HEIGHT - (SCREEN_HEIGHT % IMAGE_SIZE)) / IMAGE_SIZE)
         self.map = map.generate(40, 40)
 
-        self.goal = Character(GOAL)
-        self.player = Character(AGENT)
+        self.goal = Character.Character(GOAL)
+        self.player = Character.Character(AGENT)
         insert_symbol_into_random_empty_spot(self.map, self.player, AGENT)
         insert_symbol_into_random_empty_spot(self.map, self.goal, GOAL)
 
@@ -459,16 +167,16 @@ class MainWindow(arcade.Window):
 
     def on_key_press(self, symbol: int, modifiers: int):
         if symbol == arcade.key.UP:
-            self.player.move("w", self.map)
+            self.player.move("w", self.map, WALL)
             self.player_sprite.top = self.player.y * IMAGE_SIZE
         elif symbol == arcade.key.DOWN:
-            self.player.move("s", self.map)
+            self.player.move("s", self.map, WALL)
             self.player_sprite.top = self.player.y * IMAGE_SIZE
         elif symbol == arcade.key.LEFT:
-            self.player.move("a", self.map)
+            self.player.move("a", self.map, WALL)
             self.player_sprite.left = self.player.x * IMAGE_SIZE
         elif symbol == arcade.key.RIGHT:
-            self.player.move("d", self.map)
+            self.player.move("d", self.map, WALL)
             self.player_sprite.left = self.player.x * IMAGE_SIZE
 
 
