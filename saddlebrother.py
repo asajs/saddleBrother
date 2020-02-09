@@ -42,8 +42,9 @@ def get_path(file):
 
 class MainWindow(arcade.Window):
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, fullscreen=True)
 
+        screen_width, screen_height = self.get_size()
         arcade.set_background_color(arcade.csscolor.LIGHT_GOLDENROD_YELLOW)
 
         file_path = path.dirname(path.abspath(__file__))
@@ -55,6 +56,11 @@ class MainWindow(arcade.Window):
         self.item_list = None
         self.wall_list = None
         self.ground_list = None
+
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.viewport_margin_hort = screen_width / 2 - IMAGE_SIZE * 2
+        self.viewport_margin_vert = screen_height / 2 - IMAGE_SIZE * 2
 
         self.map = None
         self.goal = None
@@ -130,25 +136,25 @@ class MainWindow(arcade.Window):
         viewport_changed = False
 
         # Scroll left
-        left_boundary = self.view_left + VIEWPORT_MARGIN
+        left_boundary = self.view_left + self.viewport_margin_hort
         if self.player_sprite.left < left_boundary:
             self.view_left -= left_boundary - self.player_sprite.left
             viewport_changed = True
 
         # Scroll right
-        right_boundary = self.view_left + SCREEN_WIDTH - VIEWPORT_MARGIN
+        right_boundary = self.view_left + self.screen_width - self.viewport_margin_hort
         if self.player_sprite.right > right_boundary:
             self.view_left += self.player_sprite.right - right_boundary
             viewport_changed = True
 
         # Scroll up
-        top_boundary = self.view_bottom + SCREEN_HEIGHT - VIEWPORT_MARGIN
+        top_boundary = self.view_bottom + self.screen_height - self.viewport_margin_vert
         if self.player_sprite.top > top_boundary:
             self.view_bottom += self.player_sprite.top - top_boundary
             viewport_changed = True
 
         # Scroll down
-        bottom_boundary = self.view_bottom + VIEWPORT_MARGIN
+        bottom_boundary = self.view_bottom + self.viewport_margin_vert
         if self.player_sprite.bottom < bottom_boundary:
             self.view_bottom -= bottom_boundary - self.player_sprite.bottom
             viewport_changed = True
@@ -161,9 +167,9 @@ class MainWindow(arcade.Window):
 
             # Do the scrolling
             arcade.set_viewport(self.view_left,
-                                SCREEN_WIDTH + self.view_left,
+                                self.screen_width + self.view_left,
                                 self.view_bottom,
-                                SCREEN_HEIGHT + self.view_bottom)
+                                self.screen_height + self.view_bottom)
 
     def on_key_press(self, symbol: int, modifiers: int):
         if symbol == arcade.key.UP:
@@ -178,6 +184,8 @@ class MainWindow(arcade.Window):
         elif symbol == arcade.key.RIGHT:
             self.player.move("d", self.map, WALL)
             self.player_sprite.left = self.player.x * IMAGE_SIZE
+        elif symbol == arcade.key.ESCAPE:
+            arcade.close_window()
 
 
 def main():
