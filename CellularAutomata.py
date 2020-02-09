@@ -1,6 +1,7 @@
 import random
 import heapq
 
+
 class CellularAutomata:
     def __init__(self, wall, empty):
         self.number_of_steps = 2
@@ -96,6 +97,7 @@ class CellularAutomata:
         """Make sure that every empty spot can be visited"""
         height_of_map = len(automata_map)
         width_of_map = len(automata_map[0])
+        list_of_areas = list()
         unvisited = set()
         visited = set()
         local = set()
@@ -106,6 +108,7 @@ class CellularAutomata:
 
         while len(unvisited) > 0:
             coord = unvisited.pop()
+            visited.add(coord)
             # wander around a local space to see if we can reach every corner
             while True:
                 self.helper_for_sets((coord[0] + 1, coord[1]), unvisited, visited, local)
@@ -116,26 +119,30 @@ class CellularAutomata:
                     break
                 coord = local.pop()
 
-            # we failed to reach every corner if this is true
-            if len(unvisited) > 0:
-                # now to make paths in the map to another corner
-                # don't forget to add them back in
-                visited_coord = visited.pop()
-                visited.add(visited_coord)
-                unvisited_coord = unvisited.pop()
-                unvisited.add(unvisited_coord)
-                self.make_paths_in_map(automata_map, visited_coord, unvisited_coord)
-                # This is ugly and gross, but I'm just curious... Rational: the map is different now
-                unvisited.clear()
-                visited.clear()
-                for _y in range(height_of_map):
-                    for _x in range(width_of_map):
-                        if automata_map[_y][_x] == self.empty_int:
-                            unvisited.add((_y, _x))
+            list_of_areas.append(visited)
+            visited = set()
+
+        list_of_areas.sort(key=lambda x: len(x), reverse=True)
+
+        while len(list_of_areas) > 1:
+            # Grab largest and second largest sets and try to connect them
+            set_largest = list_of_areas[0]
+            set_second_largest = list_of_areas[1]
+
+            largest_set_coord = set_largest.pop()
+            set_largest.add(largest_set_coord)
+            second_largest_set_coord = set_second_largest.pop()
+            set_second_largest.add(second_largest_set_coord)
+            set_new = self.make_paths_in_map(automata_map, largest_set_coord, second_largest_set_coord)
+
+            set_largest.union(set_second_largest)
+            set_largest.union(set_new)
+            list_of_areas.pop(1)
 
     def make_paths_in_map(self, automata_map, visited_coord, unvisited_coord):
         """Make holes in the walls of the map from two coordinates"""
         # first "walk" the coordinates to each other
+        newly_made_area = set()
         unvisited_coord = self.greedy_best_search(unvisited_coord, visited_coord, automata_map)
         visited_coord = self.greedy_best_search(visited_coord, unvisited_coord, automata_map)
         vy = visited_coord[0]
@@ -148,13 +155,18 @@ class CellularAutomata:
                 vy += 1
             elif vy > uy:
                 vy -= 1
+            automata_map[vy][vx] = self.empty_int
+            newly_made_area.add((vy, vx))
 
             if vx < ux:
                 vx += 1
             elif vx > ux:
                 vx -= 1
+            newly_made_area.add((vy, vx))
             automata_map[vy][vx] = self.empty_int
-            self.random_walk(automata_map, vy, vx)
+            # So far the random walk doesn't do anything... :( I don't know why
+            # self.random_walk(automata_map, vy, vx)
+        return newly_made_area
 
     def random_walk(self, automata_map, vy, vx):
         """Randomly move from a specified coordinate"""
