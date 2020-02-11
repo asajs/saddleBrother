@@ -42,7 +42,7 @@ def get_path(file):
 
 class MainWindow(arcade.Window):
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE, fullscreen=True)
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
 
         screen_width, screen_height = self.get_size()
         arcade.set_background_color(arcade.csscolor.LIGHT_GOLDENROD_YELLOW)
@@ -56,6 +56,7 @@ class MainWindow(arcade.Window):
         self.item_list = None
         self.wall_list = None
         self.ground_list = None
+        self.water_list = None
 
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -76,6 +77,7 @@ class MainWindow(arcade.Window):
         self.item_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
         self.ground_list = arcade.SpriteList()
+        self.water_list = arcade.SpriteList()
         self.score = 0
 
         map = CellularAutomata.CellularAutomata(WALL, EMPTY)
@@ -111,6 +113,11 @@ class MainWindow(arcade.Window):
                     self.player_sprite.top = row * IMAGE_SIZE
                     self.player_sprite.left = col * IMAGE_SIZE
                     self.player_list.append(self.player_sprite)
+                elif ascii == "w":
+                    water_sprite = arcade.Sprite(get_path("Images/water.png"), CHARACTER_SCALING)
+                    water_sprite.top = row * IMAGE_SIZE
+                    water_sprite.left = col * IMAGE_SIZE
+                    self.water_list.append(water_sprite)
                 col += 1
             row += 1
 
@@ -120,6 +127,8 @@ class MainWindow(arcade.Window):
         self.ground_list.draw()
         self.wall_list.draw()
         self.item_list.draw()
+        self.water_list.draw()
+
         self.player_list.draw()
 
         score_text = f"Score: {self.score}"

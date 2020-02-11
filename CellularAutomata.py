@@ -8,15 +8,12 @@ class CellularAutomata:
         self.chance_to_stay_alive = 0.4
         self.death_limit = 3
         self.birth_limit = 4
-        self.wall_ascii = wall
         self.empty_ascii = empty
-        self.wall_int = 1
+        self.wall_ascii = wall
+        self.water_ascii = "w"
         self.empty_int = 0
-
-    @staticmethod
-    def create_grid(width, height):
-        """ Create a two-dimensional grid of specified size. """
-        return [[0 for _x in range(width)] for _y in range(height)]
+        self.wall_int = 1
+        self.water = 2
 
     def initialize_grid(self, grid):
         """ Randomly set grid locations to on/off based on chance. """
@@ -27,24 +24,6 @@ class CellularAutomata:
                 if random.random() <= self.chance_to_stay_alive:
                     grid[row][column] = 1
 
-    @staticmethod
-    def count_alive_neighbors(grid, x, y):
-        """ Count neighbors that are alive. """
-        height = len(grid)
-        width = len(grid[0])
-        alive_count = 0
-        for i in range(-1, 2):
-            for j in range(-1, 2):
-                neighbor_x = x + i
-                neighbor_y = y + j
-                if i == 0 and j == 0:
-                    continue
-                elif neighbor_x < 0 or neighbor_y < 0 or neighbor_y >= height or neighbor_x >= width:
-                    # Edges are considered alive. Makes map more likely to appear naturally closed.
-                    alive_count += 1
-                elif grid[neighbor_y][neighbor_x] == 1:
-                    alive_count += 1
-        return alive_count
 
     def do_simulation_step(self, old_grid):
         """ Run a step of the cellular automaton. """
@@ -73,7 +52,8 @@ class CellularAutomata:
         for step in range(self.number_of_steps):
             automata_map = self.do_simulation_step(automata_map)
 
-        self.validate_map(automata_map)
+        set_of_validated = self.validate_map(automata_map)
+        self.add_oasis(automata_map, set_of_validated)
         ascii_map = self.make_ascii_map(automata_map)
         return ascii_map
 
@@ -87,8 +67,10 @@ class CellularAutomata:
             for col in range(width_of_map):
                 if automata_map[row][col] == 1:
                     temp_row.append(self.wall_ascii)
-                else:
+                elif automata_map[row][col] == 0:
                     temp_row.append(self.empty_ascii)
+                elif automata_map[row][col] == 2:
+                    temp_row.append(self.water_ascii)
             ascii_row = ''.join(temp_row)
             ascii_map.append(ascii_row)
         return ascii_map
@@ -97,6 +79,7 @@ class CellularAutomata:
         """Make sure that every empty spot can be visited"""
         height_of_map = len(automata_map)
         width_of_map = len(automata_map[0])
+
         list_of_areas = list()
         unvisited = set()
         visited = set()
@@ -124,6 +107,8 @@ class CellularAutomata:
 
         list_of_areas.sort(key=lambda x: len(x), reverse=True)
 
+        set_largest = None
+
         while len(list_of_areas) > 1:
             # Grab largest and second largest sets and try to connect them
             set_largest = list_of_areas[0]
@@ -138,6 +123,8 @@ class CellularAutomata:
             set_largest.union(set_second_largest)
             set_largest.union(set_new)
             list_of_areas.pop(1)
+
+        return set_largest
 
     def make_paths_in_map(self, automata_map, visited_coord, unvisited_coord):
         """Make holes in the walls of the map from two coordinates"""
@@ -164,36 +151,22 @@ class CellularAutomata:
                 vx -= 1
             newly_made_area.add((vy, vx))
             automata_map[vy][vx] = self.empty_int
-            # So far the random walk doesn't do anything... :( I don't know why
-            # self.random_walk(automata_map, vy, vx)
+            self.random_walk(automata_map, vy, vx, self.empty_int)
         return newly_made_area
 
-    def random_walk(self, automata_map, vy, vx):
+    def random_walk(self, automata_map, vy, vx, tile):
         """Randomly move from a specified coordinate"""
         height_of_map = len(automata_map)
         width_of_map = len(automata_map[0])
         y = vy
         x = vx
-        number_of_steps = random.randrange(1, 3)
+        number_of_steps = random.randrange(2, 3)
         while number_of_steps > 0:
             y = self.clamp(random.randrange(-1, 1) + y, height_of_map, 0)
+            automata_map[y][x] = tile
             x = self.clamp(random.randrange(-1, 1) + x, width_of_map, 0)
-            automata_map[vy][vx] = self.empty_int
+            automata_map[y][x] = tile
             number_of_steps -= 1
-
-    @staticmethod
-    def clamp(number, max, min):
-        """Make sure a number does not exceed its bounds"""
-        if number > max:
-            return max
-        elif number < min:
-            return min
-        return number
-
-    @staticmethod
-    def manhattan_distance(x, y):
-        """Return the manhattan distance"""
-        return abs(x[0] - y[0]) + abs(x[1] - y[1])
 
     def greedy_best_search(self, start, goal, automata_map):
         """Look for the shortest path between to points. Returns the coordinate that gets the closest"""
@@ -235,6 +208,68 @@ class CellularAutomata:
                 break
 
         return best_so_far[1]
+
+    def add_oasis(self, automata_map, set_of_validated):
+        """Pick random spot not too near the edge and add oasis"""
+        lowest_allowed = len(automata_map) / 10
+        highest_allowed = len(automata_map) - lowest_allowed
+        leftest_allowed = len(automata_map[0]) / 10
+        rightest_allowed = len(automata_map[0]) - leftest_allowed
+        coord = set_of_validated.pop()
+        set_of_validated.add(coord)
+        while coord[0] < lowest_allowed or coord[0] > highest_allowed and coord[1] < leftest_allowed or coord[1] > rightest_allowed:
+            coord = set_of_validated.pop()
+            set_of_validated.add(coord)
+
+        width_of_oasis = random.randrange((len(automata_map) / 20), (len(automata_map) / 10) - 1)
+        height_of_oasis = random.randrange((len(automata_map[0]) / 20), (len(automata_map[0]) / 10) - 1)
+
+        iteration_start = coord[0] - height_of_oasis
+        iteration_end = coord[0] + width_of_oasis
+        oasis_slice_start = coord[1] - height_of_oasis
+        oasis_slice_end = coord[1] + height_of_oasis
+        while iteration_start < iteration_end:
+            automata_map[iteration_start][oasis_slice_start:oasis_slice_end] = [2] * (oasis_slice_end - oasis_slice_start)
+            iteration_start += 1
+
+
+    @staticmethod
+    def count_alive_neighbors(grid, x, y):
+        """ Count neighbors that are alive. """
+        height = len(grid)
+        width = len(grid[0])
+        alive_count = 0
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                neighbor_x = x + i
+                neighbor_y = y + j
+                if i == 0 and j == 0:
+                    continue
+                elif neighbor_x < 0 or neighbor_y < 0 or neighbor_y >= height or neighbor_x >= width:
+                    # Edges are considered alive. Makes map more likely to appear naturally closed.
+                    alive_count += 1
+                elif grid[neighbor_y][neighbor_x] == 1:
+                    alive_count += 1
+        return alive_count
+
+    @staticmethod
+    def create_grid(width, height):
+        """ Create a two-dimensional grid of specified size. """
+        return [[0 for _x in range(width)] for _y in range(height)]
+
+    @staticmethod
+    def clamp(number, max, min):
+        """Make sure a number does not exceed its bounds"""
+        if number > max:
+            return max
+        elif number < min:
+            return min
+        return number
+
+    @staticmethod
+    def manhattan_distance(x, y):
+        """Return the manhattan distance"""
+        return abs(x[0] - y[0]) + abs(x[1] - y[1])
 
     @staticmethod
     def helper_for_sets(coord, unvisited, visited, local):
