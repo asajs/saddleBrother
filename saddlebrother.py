@@ -78,6 +78,7 @@ class MainWindow(arcade.Window):
         self.wall_list = arcade.SpriteList()
         self.ground_list = arcade.SpriteList()
         self.water_list = arcade.SpriteList()
+        self.grass_list = arcade.SpriteList()
         self.score = 0
 
         map = CellularAutomata.CellularAutomata(WALL, EMPTY)
@@ -118,6 +119,11 @@ class MainWindow(arcade.Window):
                     water_sprite.top = row * IMAGE_SIZE
                     water_sprite.left = col * IMAGE_SIZE
                     self.water_list.append(water_sprite)
+                elif ascii == "g":
+                    grass_sprite = arcade.Sprite(get_path("Images/grass.png"), CHARACTER_SCALING)
+                    grass_sprite.top = row * IMAGE_SIZE
+                    grass_sprite.left = col * IMAGE_SIZE
+                    self.grass_list.append(grass_sprite)
                 col += 1
             row += 1
 
@@ -128,6 +134,7 @@ class MainWindow(arcade.Window):
         self.wall_list.draw()
         self.item_list.draw()
         self.water_list.draw()
+        self.grass_list.draw()
 
         self.player_list.draw()
 

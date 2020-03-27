@@ -5,15 +5,17 @@ import heapq
 class CellularAutomata:
     def __init__(self, wall, empty):
         self.number_of_steps = 2
-        self.chance_to_stay_alive = 0.4
+        self.chance_to_stay_alive = 0.35
         self.death_limit = 3
         self.birth_limit = 4
         self.empty_ascii = empty
         self.wall_ascii = wall
         self.water_ascii = "w"
-        self.empty_int = 0
-        self.wall_int = 1
+        self.grass_ascii = "g"
+        self.empty = 0
+        self.wall = 1
         self.water = 2
+        self.grass = 3
 
     def initialize_grid(self, grid):
         """ Randomly set grid locations to on/off based on chance. """
@@ -71,6 +73,8 @@ class CellularAutomata:
                     temp_row.append(self.empty_ascii)
                 elif automata_map[row][col] == 2:
                     temp_row.append(self.water_ascii)
+                elif automata_map[row][col] == 3:
+                    temp_row.append(self.grass_ascii)
             ascii_row = ''.join(temp_row)
             ascii_map.append(ascii_row)
         return ascii_map
@@ -86,7 +90,7 @@ class CellularAutomata:
         local = set()
         for _y in range(height_of_map):
             for _x in range(width_of_map):
-                if automata_map[_y][_x] == self.empty_int:
+                if automata_map[_y][_x] == self.empty:
                     unvisited.add((_y, _x))
 
         while len(unvisited) > 0:
@@ -107,7 +111,7 @@ class CellularAutomata:
 
         list_of_areas.sort(key=lambda x: len(x), reverse=True)
 
-        set_largest = None
+        set_largest = list_of_areas[0]
 
         while len(list_of_areas) > 1:
             # Grab largest and second largest sets and try to connect them
@@ -142,7 +146,7 @@ class CellularAutomata:
                 vy += 1
             elif vy > uy:
                 vy -= 1
-            automata_map[vy][vx] = self.empty_int
+            automata_map[vy][vx] = self.empty
             newly_made_area.add((vy, vx))
 
             if vx < ux:
@@ -150,17 +154,17 @@ class CellularAutomata:
             elif vx > ux:
                 vx -= 1
             newly_made_area.add((vy, vx))
-            automata_map[vy][vx] = self.empty_int
-            self.random_walk(automata_map, vy, vx, self.empty_int)
+            automata_map[vy][vx] = self.empty
+            self.random_walk(automata_map, vy, vx, self.empty, 2, 3)
         return newly_made_area
 
-    def random_walk(self, automata_map, vy, vx, tile):
+    def random_walk(self, automata_map, vy, vx, tile, min, max):
         """Randomly move from a specified coordinate"""
         height_of_map = len(automata_map)
         width_of_map = len(automata_map[0])
         y = vy
         x = vx
-        number_of_steps = random.randrange(2, 3)
+        number_of_steps = random.randrange(min, max)
         while number_of_steps > 0:
             y = self.clamp(random.randrange(-1, 1) + y, height_of_map, 0)
             automata_map[y][x] = tile
@@ -186,13 +190,13 @@ class CellularAutomata:
 
             neighbors = list()
 
-            if current[0] - 1 > 0 and automata_map[current[0] - 1][current[1]] == self.empty_int:
+            if current[0] - 1 > 0 and automata_map[current[0] - 1][current[1]] == self.empty:
                 neighbors.append((current[0] - 1, current[1]))
-            if current[0] + 1 < height_of_map and automata_map[current[0] + 1][current[1]] == self.empty_int:
+            if current[0] + 1 < height_of_map and automata_map[current[0] + 1][current[1]] == self.empty:
                 neighbors.append((current[0] + 1, current[1]))
-            if current[1] - 1 > 0 and automata_map[current[0]][current[1] - 1] == self.empty_int:
+            if current[1] - 1 > 0 and automata_map[current[0]][current[1] - 1] == self.empty:
                 neighbors.append((current[0], current[1] - 1))
-            if current[1] + 1 < width_of_map and automata_map[current[0]][current[1] + 1] == self.empty_int:
+            if current[1] + 1 < width_of_map and automata_map[current[0]][current[1] + 1] == self.empty:
                 neighbors.append((current[0], current[1] + 1))
 
             for next in neighbors:
@@ -221,16 +225,30 @@ class CellularAutomata:
             coord = set_of_validated.pop()
             set_of_validated.add(coord)
 
-        width_of_oasis = random.randrange((len(automata_map) / 20), (len(automata_map) / 10) - 1)
-        height_of_oasis = random.randrange((len(automata_map[0]) / 20), (len(automata_map[0]) / 10) - 1)
+        width_of_oasis = random.randrange(int(len(automata_map) / 20), int(len(automata_map) / 10) - 1)
+        height_of_oasis = random.randrange(int(len(automata_map[0]) / 20), int(len(automata_map[0]) / 10) - 1)
 
-        iteration_start = coord[0] - height_of_oasis
-        iteration_end = coord[0] + width_of_oasis
-        oasis_slice_start = coord[1] - height_of_oasis
-        oasis_slice_end = coord[1] + height_of_oasis
-        while iteration_start < iteration_end:
-            automata_map[iteration_start][oasis_slice_start:oasis_slice_end] = [2] * (oasis_slice_end - oasis_slice_start)
-            iteration_start += 1
+        x_start = coord[0] - height_of_oasis
+        x_end = coord[0] + width_of_oasis
+        y_start = coord[1] - height_of_oasis
+        y_end = coord[1] + height_of_oasis
+        i = x_start
+        while i < x_end:
+            automata_map[i][y_start:y_end] = [2] * (y_end - y_start)
+            i += 1
+        self.add_grass(automata_map, x_start, x_end, y_start, y_end)
+
+    def add_grass(self, automata_map, x_start, x_end, y_start, y_end):
+        list_top_x = [(x, y_start - 1) for x in range(x_start - 1, x_end + 1)]
+        list_bottom_x = [(x, y_end + 1) for x in range(x_start - 1, x_end + 1)]
+        list_left_y = [(x_start - 1, y) for y in range(y_start - 1, y_end + 2)]
+        list_right_y = [(x_end, y) for y in range(y_start - 1, y_end + 2)]
+        unique_tuples = set(list_top_x + list_bottom_x + list_left_y + list_right_y)
+
+        while len(unique_tuples) > 0:
+            coord = unique_tuples.pop()
+            automata_map[coord[0]][coord[1]] = self.grass
+            self.random_walk(automata_map, coord[0], coord[1], self.grass, 1, 3)
 
 
     @staticmethod

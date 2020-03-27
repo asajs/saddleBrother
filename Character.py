@@ -8,9 +8,9 @@ class Character:
         input = str(input).lower()
         if input == "w" and self.y + 1 < len(map) and map[self.y + 1][self.x] != wall:
             self.y += 1
-        elif input == "a" and self.x - 1 > 0 and map[self.y][self.x - 1] != wall:
+        elif input == "a" and self.x > 0 and map[self.y][self.x - 1] != wall:
             self.x -= 1
-        elif input == "s" and self.y - 1 > 0 and map[self.y - 1][self.x] != wall:
+        elif input == "s" and self.y > 0 and map[self.y - 1][self.x] != wall:
             self.y -= 1
         elif input == "d" and self.x + 1 < len(map[self.y]) and map[self.y][self.x + 1] != wall:
             self.x += 1
