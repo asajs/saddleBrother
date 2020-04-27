@@ -12,3 +12,7 @@ class ImageType(Enum):
 
 class ZoneType(Enum):
     DESERT = "desert/"
+
+
+class MonsterType(Enum):
+    SCORPION = "scorpion.png"

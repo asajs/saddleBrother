@@ -8,6 +8,14 @@ import EnumTypes
 import GlobalInfo
 
 
+def get_random_empty_spot(map):
+    x = 0
+    y = 0
+    while map[y][x] != ' ':
+        y = random.randrange(2, len(map))
+        x = random.randrange(1, len(map[0]))
+    return x, y
+
 def insert_symbol_into_random_empty_spot(map, symbol):
     x = 0
     y = 0
@@ -24,6 +32,11 @@ def remove_symbol_from_map(x, y, map):
 
 def get_path(file):
     return path.abspath(file)
+
+def place_objects(map, sprite):
+    x, y = get_random_empty_spot(map)
+    sprite.bottom = y * GlobalInfo.IMAGE_SIZE
+    sprite.left = x * GlobalInfo.IMAGE_SIZE
 
 
 class MainWindow(arcade.Window):
@@ -43,6 +56,7 @@ class MainWindow(arcade.Window):
         self.wall_list = None
         self.ground_list = None
         self.water_list = None
+        self.monster_list = None
 
         self.screen_width = screen_width
         self.screen_height = screen_height
@@ -51,9 +65,8 @@ class MainWindow(arcade.Window):
 
         self.map = None
         self.player = None
-        self.player = None
-        self.goal_sprite = None
-        self.image_handler = ImageHandler.ImageHandler()
+        self.goal = None
+        self.monster = None
 
         self.view_bottom = 0
         self.view_left = 0
@@ -65,6 +78,7 @@ class MainWindow(arcade.Window):
         self.ground_list = arcade.SpriteList()
         self.water_list = arcade.SpriteList()
         self.grass_list = arcade.SpriteList()
+        self.monster_list = arcade.SpriteList()
         self.score = 0
 
         map = CellularAutomata.CellularAutomata(GlobalInfo.WALL, GlobalInfo.EMPTY)
@@ -72,53 +86,54 @@ class MainWindow(arcade.Window):
         # max_tile_high = int((SCREEN_HEIGHT - (SCREEN_HEIGHT % IMAGE_SIZE)) / IMAGE_SIZE)
         self.map = map.generate(GlobalInfo.MAP_COUNT_X, GlobalInfo.MAP_COUNT_Y)
 
-        self.player = Character.Character(self.image_handler.get_path("Images/saddlebrother.png"))
-        insert_symbol_into_random_empty_spot(self.map, GlobalInfo.AGENT)
-        insert_symbol_into_random_empty_spot(self.map, GlobalInfo.GOAL)
+        self.player = Character.Character(ImageHandler.get_path("Images/saddlebrother.png"))
+        self.monster = Character.Character(ImageHandler.get_specifc_image(EnumTypes.ZoneType.DESERT,
+                                                                          EnumTypes.ImageType.MONSTER,
+                                                                          EnumTypes.MonsterType.SCORPION))
+        self.goal = arcade.Sprite(ImageHandler.get_specific("desert/item/lasso.png"),
+                                  GlobalInfo.CHARACTER_SCALING)
 
         row = 0
         for line in self.map:
             col = 0
             for ascii in line:
-                ground_sprite = arcade.Sprite(self.image_handler.get_random_of_type(EnumTypes.ZoneType.DESERT,
-                                                                                    EnumTypes.ImageType.GROUND),
+                ground_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
+                                                                              EnumTypes.ImageType.GROUND),
                                               GlobalInfo.CHARACTER_SCALING)
                 ground_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                 ground_sprite.left = col * GlobalInfo.IMAGE_SIZE
                 self.ground_list.append(ground_sprite)
                 if ascii == GlobalInfo.WALL:
-                    wall_sprite = arcade.Sprite(self.image_handler.get_random_of_type(EnumTypes.ZoneType.DESERT,
-                                                                                      EnumTypes.ImageType.WALL),
+                    wall_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
+                                                                                EnumTypes.ImageType.WALL),
                                                 GlobalInfo.CHARACTER_SCALING)
                     wall_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                     wall_sprite.left = col * GlobalInfo.IMAGE_SIZE
                     self.wall_list.append(wall_sprite)
-                elif ascii == GlobalInfo.GOAL:
-                    self.goal_sprite = arcade.Sprite(self.image_handler.get_specific("desert/item/lasso.png"),
-                                                     GlobalInfo.CHARACTER_SCALING)
-                    self.goal_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
-                    self.goal_sprite.left = col * GlobalInfo.IMAGE_SIZE
-                    self.item_list.append(self.goal_sprite)
-                elif ascii == GlobalInfo.AGENT:
-                    self.player.bottom = row * GlobalInfo.IMAGE_SIZE
-                    self.player.left = col * GlobalInfo.IMAGE_SIZE
-                    self.player_list.append(self.player)
                 elif ascii == "w":
-                    water_sprite = arcade.Sprite(self.image_handler.get_random_of_type(EnumTypes.ZoneType.DESERT,
-                                                                                       EnumTypes.ImageType.WATER),
+                    water_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
+                                                                                 EnumTypes.ImageType.WATER),
                                                  GlobalInfo.CHARACTER_SCALING)
                     water_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                     water_sprite.left = col * GlobalInfo.IMAGE_SIZE
                     self.water_list.append(water_sprite)
                 elif ascii == "g":
-                    grass_sprite = arcade.Sprite(self.image_handler.get_random_of_type(EnumTypes.ZoneType.DESERT,
-                                                                                       EnumTypes.ImageType.LUSHGROUND),
+                    grass_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
+                                                                                 EnumTypes.ImageType.LUSHGROUND),
                                                  GlobalInfo.CHARACTER_SCALING)
                     grass_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                     grass_sprite.left = col * GlobalInfo.IMAGE_SIZE
                     self.grass_list.append(grass_sprite)
                 col += 1
             row += 1
+
+        place_objects(self.map, self.player)
+        place_objects(self.map, self.monster)
+        place_objects(self.map, self.goal)
+
+        self.player_list.append(self.player)
+        self.monster_list.append(self.monster)
+        self.item_list.append(self.goal)
 
     def on_draw(self):
         arcade.start_render()
@@ -129,6 +144,7 @@ class MainWindow(arcade.Window):
         self.item_list.draw()
         self.water_list.draw()
         self.grass_list.draw()
+        self.monster_list.draw()
 
         self.player_list.draw()
 
@@ -137,11 +153,11 @@ class MainWindow(arcade.Window):
 
     def on_update(self, delta_time: float):
         self.player.move()
-        if arcade.check_for_collision(self.player, self.goal_sprite):
+        if arcade.check_for_collision(self.player, self.goal):
             self.score += 5
             goal_x, goal_y = insert_symbol_into_random_empty_spot(self.map, GlobalInfo.GOAL)
-            self.goal_sprite.top = goal_y * GlobalInfo.IMAGE_SIZE
-            self.goal_sprite.left = goal_x * GlobalInfo.IMAGE_SIZE
+            self.goal.top = goal_y * GlobalInfo.IMAGE_SIZE
+            self.goal.left = goal_x * GlobalInfo.IMAGE_SIZE
 
         self.player.account_for_collision_list(arcade.check_for_collision_with_list(self.player, self.wall_list))
 
@@ -196,8 +212,6 @@ class MainWindow(arcade.Window):
             self.player.right_pressed = True
         elif symbol == arcade.key.ESCAPE:
             arcade.close_window()
-
-        # self.player.update_movement(up, down, left, right)
 
     def on_key_release(self, symbol: int, modifiers: int):
         if symbol == arcade.key.UP:
