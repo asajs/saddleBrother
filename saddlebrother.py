@@ -1,42 +1,11 @@
 from os import path, chdir
 import arcade
-import random
 import Character
 import CellularAutomata
 import ImageHandler
 import EnumTypes
 import GlobalInfo
-
-
-def get_random_empty_spot(map):
-    x = 0
-    y = 0
-    while map[y][x] != ' ':
-        y = random.randrange(2, len(map))
-        x = random.randrange(1, len(map[0]))
-    return x, y
-
-def insert_symbol_into_random_empty_spot(map, symbol):
-    x = 0
-    y = 0
-    while map[y][x] != ' ':
-        y = random.randrange(2, len(map))
-        x = random.randrange(1, len(map[0]))
-    map[y] = map[y][:x] + symbol + map[y][x + 1:]
-    return x, y
-
-
-def remove_symbol_from_map(x, y, map):
-    map[y] = map[y][:x] + GlobalInfo.EMPTY + map[y][x + 1:]
-
-
-def get_path(file):
-    return path.abspath(file)
-
-def place_objects(map, sprite):
-    x, y = get_random_empty_spot(map)
-    sprite.bottom = y * GlobalInfo.IMAGE_SIZE
-    sprite.left = x * GlobalInfo.IMAGE_SIZE
+import GameMap
 
 
 class MainWindow(arcade.Window):
@@ -57,13 +26,13 @@ class MainWindow(arcade.Window):
         self.ground_list = None
         self.water_list = None
         self.monster_list = None
+        self.grass_list = None
 
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.viewport_margin_hort = screen_width / 2 - GlobalInfo.IMAGE_SIZE * 2
         self.viewport_margin_vert = screen_height / 2 - GlobalInfo.IMAGE_SIZE * 2
 
-        self.map = None
         self.player = None
         self.goal = None
         self.monster = None
@@ -81,11 +50,6 @@ class MainWindow(arcade.Window):
         self.monster_list = arcade.SpriteList()
         self.score = 0
 
-        map = CellularAutomata.CellularAutomata(GlobalInfo.WALL, GlobalInfo.EMPTY)
-        # max_tile_wide = int((SCREEN_WIDTH - (SCREEN_WIDTH % IMAGE_SIZE)) / IMAGE_SIZE)
-        # max_tile_high = int((SCREEN_HEIGHT - (SCREEN_HEIGHT % IMAGE_SIZE)) / IMAGE_SIZE)
-        self.map = map.generate(GlobalInfo.MAP_COUNT_X, GlobalInfo.MAP_COUNT_Y)
-
         self.player = Character.Character(ImageHandler.get_path("Images/saddlebrother.png"))
         self.monster = Character.Character(ImageHandler.get_specifc_image(EnumTypes.ZoneType.DESERT,
                                                                           EnumTypes.ImageType.MONSTER,
@@ -94,7 +58,7 @@ class MainWindow(arcade.Window):
                                   GlobalInfo.CHARACTER_SCALING)
 
         row = 0
-        for line in self.map:
+        for line in GameMap.PUBLIC_MAP:
             col = 0
             for ascii in line:
                 ground_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
@@ -127,9 +91,9 @@ class MainWindow(arcade.Window):
                 col += 1
             row += 1
 
-        place_objects(self.map, self.player)
-        place_objects(self.map, self.monster)
-        place_objects(self.map, self.goal)
+        GameMap.place_objects(self.player)
+        GameMap.place_objects(self.monster)
+        GameMap.place_objects(self.goal)
 
         self.player_list.append(self.player)
         self.monster_list.append(self.monster)
@@ -155,7 +119,7 @@ class MainWindow(arcade.Window):
         self.player.move()
         if arcade.check_for_collision(self.player, self.goal):
             self.score += 5
-            goal_x, goal_y = insert_symbol_into_random_empty_spot(self.map, GlobalInfo.GOAL)
+            goal_x, goal_y = GameMap.get_random_empty_spot()
             self.goal.top = goal_y * GlobalInfo.IMAGE_SIZE
             self.goal.left = goal_x * GlobalInfo.IMAGE_SIZE
 
