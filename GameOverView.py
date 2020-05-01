@@ -1,6 +1,7 @@
+from GameWindow import GameWindow
 import arcade
 import GlobalInfo
-import saddlebrother
+
 
 class GameOverView(arcade.View):
     def __init__(self):
@@ -22,6 +23,6 @@ class GameOverView(arcade.View):
         if symbol == arcade.key.ESCAPE:
             arcade.close_window()
             return
-        game_window = saddlebrother.GameWindow()
+        game_window = GameWindow()
         game_window.setup()
         self.window.show_view(game_window)

@@ -1,5 +1,5 @@
+from GameWindow import GameWindow
 import arcade
-import saddlebrother
 import GlobalInfo
 
 
@@ -55,7 +55,7 @@ class PausedScreenView(arcade.View):
             arcade.close_window()
             return
         elif symbol == arcade.key.ENTER:
-            game = saddlebrother.GameWindow()
+            game = GameWindow()
             game.reset()
             game.setup()
             self.window.show_view(game)

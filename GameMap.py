@@ -1,10 +1,10 @@
-import CellularAutomata
+from CellularAutomata import CellularAutomata
 import GlobalInfo
 import random
 
 
 class GameMap:
-    PUBLIC_MAP = CellularAutomata.CellularAutomata().generate(GlobalInfo.MAP_COUNT_X, GlobalInfo.MAP_COUNT_Y)
+    PUBLIC_MAP = CellularAutomata().generate(GlobalInfo.MAP_COUNT_X, GlobalInfo.MAP_COUNT_Y)
 
     @staticmethod
     def place_object_random_empty_spot(sprite):
@@ -24,5 +24,5 @@ class GameMap:
     @staticmethod
     def reset():
         del GameMap.PUBLIC_MAP[:]
-        GameMap.PUBLIC_MAP = CellularAutomata.CellularAutomata().generate(GlobalInfo.MAP_COUNT_X, GlobalInfo.MAP_COUNT_Y)
+        GameMap.PUBLIC_MAP = CellularAutomata().generate(GlobalInfo.MAP_COUNT_X, GlobalInfo.MAP_COUNT_Y)
 
