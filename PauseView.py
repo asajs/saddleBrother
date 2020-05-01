@@ -1,7 +1,6 @@
-from GameWindow import GameWindow
 import arcade
 import GlobalInfo
-
+import GameWindow
 
 class PausedScreenView(arcade.View):
     def __init__(self, game_view):
@@ -18,12 +17,11 @@ class PausedScreenView(arcade.View):
         left, right, bottom, top = self.window.get_viewport()
         middle_x = left + GlobalInfo.SCREEN_WIDTH / 2
 
-
         arcade.draw_lrtb_rectangle_filled(left=left,
                                           right=right,
                                           top=top,
                                           bottom=bottom,
-                                          color=arcade.color.ORANGE_RED + (200,))
+                                          color=arcade.color.BLACK + (150,))
 
         arcade.draw_text("Every Saddle Brother needs a rest once in a while",
                          middle_x,
@@ -31,19 +29,19 @@ class PausedScreenView(arcade.View):
                          arcade.color.AMBER,
                          30,
                          anchor_x="center")
-        arcade.draw_text("Escape to quit",
+        arcade.draw_text("Escape to resume",
                          middle_x,
                          top - 80,
                          arcade.color.AMBER,
                          15,
                          anchor_x="center")
-        arcade.draw_text("Enter to restart",
+        arcade.draw_text("R to restart",
                          middle_x,
                          top - 110,
                          arcade.color.AMBER,
                          15,
                          anchor_x="center")
-        arcade.draw_text("Any key to resume",
+        arcade.draw_text("Q to quit",
                          middle_x,
                          top - 140,
                          arcade.color.AMBER,
@@ -52,12 +50,12 @@ class PausedScreenView(arcade.View):
 
     def on_key_press(self, symbol: int, modifiers: int):
         if symbol == arcade.key.ESCAPE:
-            arcade.close_window()
+            self.window.show_view(self.game_view)
             return
-        elif symbol == arcade.key.ENTER:
-            game = GameWindow()
+        elif symbol == arcade.key.R:
+            game = GameWindow.GameWindow()
             game.reset()
             game.setup()
             self.window.show_view(game)
-        else:
-            self.window.show_view(self.game_view)
+        elif symbol == arcade.key.Q:
+            arcade.close_window()

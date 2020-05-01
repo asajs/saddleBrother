@@ -23,6 +23,7 @@ class GameOverView(arcade.View):
         if symbol == arcade.key.ESCAPE:
             arcade.close_window()
             return
-        game_window = GameWindow()
-        game_window.setup()
-        self.window.show_view(game_window)
+        else:
+            game_window = GameWindow()
+            game_window.setup()
+            self.window.show_view(game_window)

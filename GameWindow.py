@@ -1,15 +1,13 @@
 from os import path, chdir
 from MonsterManager import MonsterManager
 from GameMap import GameMap
+import PauseView
 import arcade
 import Character
 import ImageHandler
 import EnumTypes
 import GlobalInfo
-import GameMap
-import MonsterManager
 import math
-import PausedScreen
 
 
 class GameWindow(arcade.View):
@@ -199,7 +197,7 @@ class GameWindow(arcade.View):
         elif symbol == arcade.key.RIGHT:
             self.player.right_pressed = True
         elif symbol == arcade.key.ESCAPE:
-            paused_view = PausedScreen.PausedScreenView(self)
+            paused_view = PauseView.PausedScreenView(self)
             self.window.show_view(paused_view)
 
     def on_key_release(self, symbol: int, modifiers: int):
