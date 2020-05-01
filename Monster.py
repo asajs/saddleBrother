@@ -1,22 +1,34 @@
 import arcade
-import GlobalInfo
+import GameMap
 import math
+import random
+import GlobalInfo
+from enum import Enum
 
 
-class Character(arcade.Sprite):
-    def __init__(self, sprite):
+class State(Enum):
+    IDLE = 1
+    ATTACKING = 2
+
+
+class Monster(arcade.Sprite):
+    def __init__(self, sprite, acceleration=1.0, friction=0.2, max_speed=5.0, awareness=6):
         super().__init__(sprite, GlobalInfo.CHARACTER_SCALING)
-        self.acceleration = 1.0
-        self.friction = 0.2
-        self.max_speed = 8.0
+        self.acceleration = acceleration
+        self.friction = friction
+        self.max_speed = max_speed
+        self.awareness = awareness * GlobalInfo.IMAGE_SIZE
         self.up_pressed = False
         self.down_pressed = False
         self.left_pressed = False
         self.right_pressed = False
-        self.lasso_count = 0
+        self.state = State.IDLE
+        self.frame_counter = 0
 
-    def account_for_collision_list(self, item, list_of_objects):
-        collisions = arcade.check_for_collision_with_list(item, list_of_objects)
+        self.set_state(State.IDLE)
+
+    def account_for_collision_list(self, item, list):
+        collisions = arcade.check_for_collision_with_list(item, list)
         if collisions:
             collide = collisions.pop()
 
@@ -92,3 +104,37 @@ class Character(arcade.Sprite):
         elif self.top > GlobalInfo.GAME_HEIGHT - 1:
             self.top = GlobalInfo.GAME_HEIGHT - 1
             self.change_y = 0
+
+    def computer_next_move(self):
+        # only check state every 5 frames
+        if self.frame_counter < 25:
+            self.frame_counter += 1
+            return
+
+        self.frame_counter = 0
+
+        if self.state == State.IDLE:
+            random_int = random.randint(0, 20)
+            if random_int == 0:
+                self.down_pressed = False
+                self.up_pressed = True
+            elif random_int == 1:
+                self.left_pressed = False
+                self.right_pressed = True
+            elif random_int == 2:
+                self.up_pressed = False
+                self.down_pressed = True
+            elif random_int == 3:
+                self.right_pressed = False
+                self.left_pressed = True
+            else:
+                self.down_pressed = False
+                self.left_pressed = False
+                self.up_pressed = False
+                self.right_pressed = False
+
+    def set_state(self, next_state):
+        if next_state == State.IDLE:
+            self.state = next_state
+            self.acceleration = 0.3
+            self.max_speed = 2.5

@@ -1,18 +1,19 @@
 from os import path, chdir
 import arcade
 import Character
-import CellularAutomata
 import ImageHandler
 import EnumTypes
 import GlobalInfo
 import GameMap
+import MonsterManager
+import math
+import PausedScreen
 
 
-class MainWindow(arcade.Window):
+class GameWindow(arcade.View):
     def __init__(self):
-        super().__init__(GlobalInfo.SCREEN_WIDTH, GlobalInfo.SCREEN_HEIGHT, GlobalInfo.SCREEN_TITLE)
+        super().__init__()
 
-        screen_width, screen_height = self.get_size()
         arcade.set_background_color(arcade.csscolor.LIGHT_GOLDENROD_YELLOW)
 
         file_path = path.dirname(path.abspath(__file__))
@@ -25,17 +26,14 @@ class MainWindow(arcade.Window):
         self.wall_list = None
         self.ground_list = None
         self.water_list = None
-        self.monster_list = None
+        self.lasso_list = None
         self.grass_list = None
-
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.viewport_margin_hort = screen_width / 2 - GlobalInfo.IMAGE_SIZE * 2
-        self.viewport_margin_vert = screen_height / 2 - GlobalInfo.IMAGE_SIZE * 2
 
         self.player = None
         self.goal = None
-        self.monster = None
+
+        self.monster_manager = MonsterManager.MonsterManager()
+        self.game_map = GameMap.GameMap()
 
         self.view_bottom = 0
         self.view_left = 0
@@ -43,45 +41,43 @@ class MainWindow(arcade.Window):
     def setup(self):
         self.player_list = arcade.SpriteList()
         self.item_list = arcade.SpriteList()
-        self.wall_list = arcade.SpriteList()
-        self.ground_list = arcade.SpriteList()
-        self.water_list = arcade.SpriteList()
-        self.grass_list = arcade.SpriteList()
-        self.monster_list = arcade.SpriteList()
-        self.score = 0
+        self.lasso_list = arcade.SpriteList()
+        self.wall_list = arcade.SpriteList(is_static=True, use_spatial_hash=True)
+        self.ground_list = arcade.SpriteList(is_static=True, use_spatial_hash=True)
+        self.water_list = arcade.SpriteList(is_static=True, use_spatial_hash=True)
+        self.grass_list = arcade.SpriteList(is_static=True, use_spatial_hash=True)
 
         self.player = Character.Character(ImageHandler.get_path("Images/saddlebrother.png"))
-        self.monster = Character.Character(ImageHandler.get_specifc_image(EnumTypes.ZoneType.DESERT,
-                                                                          EnumTypes.ImageType.MONSTER,
-                                                                          EnumTypes.MonsterType.SCORPION))
         self.goal = arcade.Sprite(ImageHandler.get_specific("desert/item/lasso.png"),
                                   GlobalInfo.CHARACTER_SCALING)
 
+        self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
+
         row = 0
-        for line in GameMap.PUBLIC_MAP:
+        for line in self.game_map.PUBLIC_MAP:
             col = 0
-            for ascii in line:
+            for ground_ascii in line:
                 ground_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
                                                                               EnumTypes.ImageType.GROUND),
                                               GlobalInfo.CHARACTER_SCALING)
                 ground_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                 ground_sprite.left = col * GlobalInfo.IMAGE_SIZE
                 self.ground_list.append(ground_sprite)
-                if ascii == GlobalInfo.WALL:
+                if ground_ascii == GlobalInfo.WALL:
                     wall_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
                                                                                 EnumTypes.ImageType.WALL),
                                                 GlobalInfo.CHARACTER_SCALING)
                     wall_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                     wall_sprite.left = col * GlobalInfo.IMAGE_SIZE
                     self.wall_list.append(wall_sprite)
-                elif ascii == "w":
+                elif ground_ascii == GlobalInfo.WATER:
                     water_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
                                                                                  EnumTypes.ImageType.WATER),
                                                  GlobalInfo.CHARACTER_SCALING)
                     water_sprite.bottom = row * GlobalInfo.IMAGE_SIZE
                     water_sprite.left = col * GlobalInfo.IMAGE_SIZE
                     self.water_list.append(water_sprite)
-                elif ascii == "g":
+                elif ground_ascii == GlobalInfo.GRASS:
                     grass_sprite = arcade.Sprite(ImageHandler.get_random_of_type(EnumTypes.ZoneType.DESERT,
                                                                                  EnumTypes.ImageType.LUSHGROUND),
                                                  GlobalInfo.CHARACTER_SCALING)
@@ -91,12 +87,10 @@ class MainWindow(arcade.Window):
                 col += 1
             row += 1
 
-        GameMap.place_objects(self.player)
-        GameMap.place_objects(self.monster)
-        GameMap.place_objects(self.goal)
+        self.game_map.place_object_random_empty_spot(self.player)
+        self.game_map.place_object_random_empty_spot(self.goal)
 
         self.player_list.append(self.player)
-        self.monster_list.append(self.monster)
         self.item_list.append(self.goal)
 
     def on_draw(self):
@@ -105,48 +99,56 @@ class MainWindow(arcade.Window):
         # screen is drawn in layered order. Items on the topmost layer get called last
         self.ground_list.draw()
         self.wall_list.draw()
-        self.item_list.draw()
-        self.water_list.draw()
         self.grass_list.draw()
-        self.monster_list.draw()
+        self.water_list.draw()
+        self.item_list.draw()
+        self.lasso_list.draw()
 
-        self.player_list.draw()
+        self.monster_manager.draw()
+
+        self.player_list.draw() # This should always be drawn last
 
         score_text = f"Score: {self.score}"
         arcade.draw_text(score_text, 10 + self.view_left, 10 + self.view_bottom, arcade.csscolor.BLACK, 20)
+        lasso_count_text = f"Lassos: {self.player.lasso_count}"
+        arcade.draw_text(lasso_count_text, self.view_left + 10, 40 + self.view_bottom, arcade.csscolor.BLACK, 20)
 
     def on_update(self, delta_time: float):
         self.player.move()
         if arcade.check_for_collision(self.player, self.goal):
             self.score += 5
-            goal_x, goal_y = GameMap.get_random_empty_spot()
-            self.goal.top = goal_y * GlobalInfo.IMAGE_SIZE
-            self.goal.left = goal_x * GlobalInfo.IMAGE_SIZE
+            self.player.lasso_count += 1
+            self.game_map.place_object_random_empty_spot(self.goal)
+            self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
 
-        self.player.account_for_collision_list(arcade.check_for_collision_with_list(self.player, self.wall_list))
+
+        self.player.account_for_collision_list(self.player, self.wall_list)
+        self.player.account_for_collision_list(self.player, self.monster_manager.monster_list)
+        self.monster_manager.update(self.wall_list)
+        self.monster_manager.update(self.player_list)
 
         viewport_changed = False
 
         # Scroll left
-        left_boundary = self.view_left + self.viewport_margin_hort
+        left_boundary = self.view_left + GlobalInfo.VIEWPORT_MARGIN_HORT
         if self.player.left < left_boundary:
             self.view_left -= left_boundary - self.player.left
             viewport_changed = True
 
         # Scroll right
-        right_boundary = self.view_left + self.screen_width - self.viewport_margin_hort
+        right_boundary = self.view_left + GlobalInfo.SCREEN_WIDTH - GlobalInfo.VIEWPORT_MARGIN_HORT
         if self.player.right > right_boundary:
             self.view_left += self.player.right - right_boundary
             viewport_changed = True
 
         # Scroll up
-        top_boundary = self.view_bottom + self.screen_height - self.viewport_margin_vert
+        top_boundary = self.view_bottom + GlobalInfo.SCREEN_HEIGHT - GlobalInfo.VIEWPORT_MARGIN_VERT
         if self.player.top > top_boundary:
             self.view_bottom += self.player.top - top_boundary
             viewport_changed = True
 
         # Scroll down
-        bottom_boundary = self.view_bottom + self.viewport_margin_vert
+        bottom_boundary = self.view_bottom + GlobalInfo.VIEWPORT_MARGIN_VERT
         if self.player.bottom < bottom_boundary:
             self.view_bottom -= bottom_boundary - self.player.bottom
             viewport_changed = True
@@ -159,9 +161,30 @@ class MainWindow(arcade.Window):
 
             # Do the scrolling
             arcade.set_viewport(self.view_left,
-                                self.screen_width + self.view_left,
+                                GlobalInfo.SCREEN_WIDTH + self.view_left,
                                 self.view_bottom,
-                                self.screen_height + self.view_bottom)
+                                GlobalInfo.SCREEN_HEIGHT + self.view_bottom)
+
+        self.lasso_list.update()
+
+        top = self.player.center_y + GlobalInfo.VIEWPORT_MARGIN_VERT
+        bottom = self.player.center_y - GlobalInfo.VIEWPORT_MARGIN_VERT
+        right = self.player.center_x + GlobalInfo.VIEWPORT_MARGIN_HORT
+        left = self.player.center_x - GlobalInfo.VIEWPORT_MARGIN_HORT
+
+        for lasso in self.lasso_list:
+
+            monster_hit_list = arcade.check_for_collision_with_list(lasso, self.monster_manager.monster_list)
+            wall_hit_list = arcade.check_for_collision_with_list(lasso, self.wall_list)
+
+            if len(monster_hit_list) > 0 or len(wall_hit_list) > 0:
+                lasso.remove_from_sprite_lists()
+
+            for monster in monster_hit_list:
+                monster.remove_from_sprite_lists()
+
+            if lasso.bottom > top or lasso.top < bottom or lasso.right < left or lasso.left > right:
+                lasso.remove_from_sprite_lists()
 
         self.player_list.update()
 
@@ -175,7 +198,8 @@ class MainWindow(arcade.Window):
         elif symbol == arcade.key.RIGHT:
             self.player.right_pressed = True
         elif symbol == arcade.key.ESCAPE:
-            arcade.close_window()
+            paused_view = PausedScreen.PausedScreenView(self)
+            self.window.show_view(paused_view)
 
     def on_key_release(self, symbol: int, modifiers: int):
         if symbol == arcade.key.UP:
@@ -187,10 +211,61 @@ class MainWindow(arcade.Window):
         elif symbol == arcade.key.RIGHT:
             self.player.right_pressed = False
 
+    def on_mouse_press(self, x: float, y: float, button: int, modifiers: int):
+        # i = 0
+        # while i < 200:
+        #     self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
+        #     i += 1
+        if self.player.lasso_count == 0:
+            return
+
+        self.player.lasso_count -= 1
+
+        lasso = arcade.Sprite(ImageHandler.get_specific("desert/item/lasso.png"),
+                              GlobalInfo.CHARACTER_SCALING)
+
+        lasso.center_x = self.player.center_x
+        lasso.center_y = self.player.center_y
+
+        x_diff = (x + self.view_left) - lasso.center_x
+        y_diff = (y + self.view_bottom) - lasso.center_y
+
+        angle = math.atan2(y_diff, x_diff)
+        lasso.angle = math.degrees(angle) - 90
+
+        bullet_speed = 5.0
+        lasso.change_x = math.cos(angle) * bullet_speed
+        lasso.change_y = math.sin(angle) * bullet_speed
+
+        self.lasso_list.append(lasso)
+
+    def reset(self):
+        self.score = 0
+        self.view_left = 0
+        self.view_bottom = 0
+
+        del self.player_list
+        del self.item_list
+        del self.wall_list
+        del self.ground_list
+        del self.water_list
+        del self.lasso_list
+        del self.grass_list
+
+        self.player = None
+        self.goal = None
+
+        self.monster_manager.reset()
+        self.game_map.reset()
+
+
+
 
 def main():
-    window = MainWindow()
-    window.setup()
+    window = arcade.Window(GlobalInfo.SCREEN_WIDTH, GlobalInfo.SCREEN_HEIGHT, GlobalInfo.SCREEN_TITLE)
+    game = GameWindow()
+    game.setup()
+    window.show_view(game)
     arcade.run()
 
 
