@@ -2,13 +2,11 @@ import arcade
 import GlobalInfo
 import GameWindow
 
+
 class PausedScreenView(arcade.View):
     def __init__(self, game_view):
         super().__init__()
         self.game_view = game_view
-
-    def on_show(self):
-        pass
 
     def on_draw(self):
         arcade.start_render()

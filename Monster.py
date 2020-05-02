@@ -1,9 +1,12 @@
 import arcade
-import GameMap
 import math
 import random
 import GlobalInfo
 from enum import Enum
+
+IDLE_PAUSE = 25
+CHANCE_OF_ACTION_MAX = 20
+CLOSE_ENOUGH = 200
 
 
 class State(Enum):
@@ -12,7 +15,7 @@ class State(Enum):
 
 
 class Monster(arcade.Sprite):
-    def __init__(self, sprite, acceleration=1.0, friction=0.2, max_speed=5.0, awareness=6):
+    def __init__(self, sprite, target, acceleration=1.0, friction=0.2, max_speed=5.0, awareness=6):
         super().__init__(sprite, GlobalInfo.CHARACTER_SCALING)
         self.acceleration = acceleration
         self.friction = friction
@@ -24,6 +27,7 @@ class Monster(arcade.Sprite):
         self.right_pressed = False
         self.state = State.IDLE
         self.frame_counter = 0
+        self.target = target
 
         self.set_state(State.IDLE)
 
@@ -105,16 +109,21 @@ class Monster(arcade.Sprite):
             self.top = GlobalInfo.GAME_HEIGHT - 1
             self.change_y = 0
 
-    def computer_next_move(self):
-        # only check state every 5 frames
-        if self.frame_counter < 25:
-            self.frame_counter += 1
-            return
+        if self.distance_to_target() <= CLOSE_ENOUGH:
+            self.set_state(State.ATTACKING)
+        elif self.distance_to_target() > CLOSE_ENOUGH:
+            self.set_state(State.IDLE)
 
-        self.frame_counter = 0
-
+    def computer_next_move(self, target):
         if self.state == State.IDLE:
-            random_int = random.randint(0, 20)
+
+            if self.frame_counter < IDLE_PAUSE:
+                self.frame_counter += 1
+                return
+
+            self.frame_counter = 0
+
+            random_int = random.randint(0, CHANCE_OF_ACTION_MAX)
             if random_int == 0:
                 self.down_pressed = False
                 self.up_pressed = True
@@ -132,9 +141,31 @@ class Monster(arcade.Sprite):
                 self.left_pressed = False
                 self.up_pressed = False
                 self.right_pressed = False
+        elif self.state == State.ATTACKING:
+            if target.center_x > self.center_x:
+                self.right_pressed = True
+                self.left_pressed = False
+            elif target.center_x < self.center_x:
+                self.left_pressed = True
+                self.right_pressed = False
+            if target.center_y > self.center_y:
+                self.up_pressed = True
+                self.down_pressed = False
+            elif target.center_y < self.center_y:
+                self.down_pressed = True
+                self.up_pressed = False
 
     def set_state(self, next_state):
         if next_state == State.IDLE:
             self.state = next_state
             self.acceleration = 0.3
             self.max_speed = 2.5
+        if next_state == State.ATTACKING:
+            self.state = next_state
+            self.acceleration = 0.5
+            self.max_speed = 3.5
+
+    def distance_to_target(self):
+        x = self.center_x - self.target.center_x
+        y = self.center_y - self.target.center_y
+        return math.hypot(x, y)

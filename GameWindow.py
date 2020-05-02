@@ -51,7 +51,7 @@ class GameWindow(arcade.View):
         self.goal = arcade.Sprite(ImageHandler.get_specific("desert/item/lasso.png"),
                                   GlobalInfo.CHARACTER_SCALING)
 
-        self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
+        self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION, self.player)
 
         row = 0
         for line in self.game_map.PUBLIC_MAP:
@@ -119,12 +119,12 @@ class GameWindow(arcade.View):
             self.score += 5
             self.player.lasso_count += 1
             self.game_map.place_object_random_empty_spot(self.goal)
-            self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
+            self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION, self.player)
 
         self.player.account_for_collision_list(self.player, self.wall_list)
         self.player.account_for_collision_list(self.player, self.monster_manager.monster_list)
-        self.monster_manager.update(self.wall_list)
-        self.monster_manager.update(self.player_list)
+        self.monster_manager.update(self.wall_list, self.player)
+        self.monster_manager.update(self.player_list, self.player)
 
         viewport_changed = False
 
