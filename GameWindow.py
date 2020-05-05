@@ -1,6 +1,6 @@
 from os import path, chdir
-from MonsterManager import MonsterManager
-from GameMap import GameMap
+import MonsterManager
+import GameMap
 import PauseView
 import arcade
 import Character
@@ -32,8 +32,8 @@ class GameWindow(arcade.View):
         self.player = None
         self.goal = None
 
-        self.monster_manager = MonsterManager()
-        self.game_map = GameMap()
+        self.monster_manager = MonsterManager.MonsterManager()
+        self.game_map = GameMap.GameMap()
 
         self.view_bottom = 0
         self.view_left = 0
@@ -51,7 +51,7 @@ class GameWindow(arcade.View):
         self.goal = arcade.Sprite(ImageHandler.get_specific("desert/item/lasso.png"),
                                   GlobalInfo.CHARACTER_SCALING)
 
-        self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION, self.player)
+        self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
 
         row = 0
         for line in self.game_map.PUBLIC_MAP:
@@ -106,7 +106,7 @@ class GameWindow(arcade.View):
 
         self.monster_manager.draw()
 
-        self.player_list.draw() # This should always be drawn last
+        self.player_list.draw()  # This should always be drawn last
 
         score_text = f"Score: {self.score}"
         arcade.draw_text(score_text, 10 + self.view_left, 10 + self.view_bottom, arcade.csscolor.BLACK, 20)
@@ -119,12 +119,12 @@ class GameWindow(arcade.View):
             self.score += 5
             self.player.lasso_count += 1
             self.game_map.place_object_random_empty_spot(self.goal)
-            self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION, self.player)
+            self.monster_manager.add_monster(EnumTypes.MonsterType.SCORPION)
 
-        self.player.account_for_collision_list(self.player, self.wall_list)
-        self.player.account_for_collision_list(self.player, self.monster_manager.monster_list)
-        self.monster_manager.update(self.wall_list, self.player)
-        self.monster_manager.update(self.player_list, self.player)
+        self.player.account_for_collision_list(self.wall_list)
+        self.player.account_for_collision_list(self.monster_manager.monster_list)
+        self.monster_manager.update(self.wall_list)
+        self.monster_manager.update(self.player_list)
 
         viewport_changed = False
 

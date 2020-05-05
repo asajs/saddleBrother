@@ -1,5 +1,5 @@
 import arcade
-import Monster
+import Monster.Scorpion.ScorpionBase as Scorp
 import ImageHandler
 import EnumTypes
 import GameMap
@@ -13,19 +13,19 @@ class MonsterManager:
         MonsterManager.monster_list.draw()
 
     @staticmethod
-    def update(wall_list, player):
+    def update(wall_list):
         for monster in MonsterManager.monster_list:
-            monster.computer_next_move(player)
+            monster.next_move()
             monster.move()
-            monster.account_for_collision_list(monster, wall_list)
+            monster.account_for_collision_list(wall_list)
         MonsterManager.monster_list.update()
 
     @staticmethod
-    def add_monster(monster_type, target):
+    def add_monster(monster_type):
         if isinstance(monster_type, EnumTypes.MonsterType):
-            new_monster = Monster.Monster(ImageHandler.get_specifc_image(EnumTypes.ZoneType.DESERT,
-                                                                         EnumTypes.ImageType.MONSTER,
-                                                                         monster_type), target)
+            new_monster = Scorp.ScorpionBase(ImageHandler.get_specifc_image(EnumTypes.ZoneType.DESERT,
+                                                                            EnumTypes.ImageType.MONSTER,
+                                                                            monster_type))
             GameMap.GameMap.place_object_random_empty_spot(new_monster)
             MonsterManager.monster_list.append(new_monster)
 
