@@ -63,6 +63,8 @@ def account_for_collision_list(sprite, sprite_list):
         elif right_collisions:
             sprite.change_x = 0
             sprite.right = collide.left - 1
+
+    return collisions
             
 
 def update(sprite):
