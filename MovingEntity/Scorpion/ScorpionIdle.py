@@ -41,3 +41,7 @@ class ScorpionIdle:
     def enter_state(self, scorpion_sprite):
         scorpion_sprite.acceleration = 0.3
         scorpion_sprite.max_speed = 2.5
+        scorpion_sprite.down_pressed = False
+        scorpion_sprite.left_pressed = False
+        scorpion_sprite.up_pressed = False
+        scorpion_sprite.right_pressed = False

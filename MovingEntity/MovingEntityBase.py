@@ -1,6 +1,7 @@
 import arcade
-import MovementComponent
+from MovingEntity import MovementComponent
 import GlobalInfo
+import GameMap
 
 
 class MovingEntityBase(arcade.Sprite):
@@ -14,11 +15,7 @@ class MovingEntityBase(arcade.Sprite):
         self.left_pressed = False
         self.right_pressed = False
 
-    def account_for_collision_list(self, sprite_list):
-        MovementComponent.account_for_collision_list(self, sprite_list)
-
-    def move(self):
-        MovementComponent.move(self)
-
     def update(self):
+        MovementComponent.account_for_collision_list(self, GameMap.GameMap.WALL_LIST)
+        MovementComponent.move(self)
         MovementComponent.update(self)

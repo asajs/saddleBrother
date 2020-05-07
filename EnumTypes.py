@@ -14,5 +14,10 @@ class ZoneType(Enum):
     DESERT = "desert/"
 
 
-class MonsterType(Enum):
+class MovingType(Enum):
     SCORPION = "scorpion.png"
+    CHARACTER = "saddlebrother.png"
+
+
+class ItemType(Enum):
+    PICKUP_LASSO = "lasso.png"

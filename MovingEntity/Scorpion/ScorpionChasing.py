@@ -1,5 +1,5 @@
 
-class ScorpionAttacking:
+class ScorpionChasing:
     def __init__(self, target_sprite):
         self.__target_sprite = target_sprite
 
@@ -19,4 +19,4 @@ class ScorpionAttacking:
 
     def enter_state(self, scorpion_sprite):
         scorpion_sprite.acceleration = 0.5
-        scorpion_sprite.max_speed = 3.5
+        scorpion_sprite.max_speed = 5.0
