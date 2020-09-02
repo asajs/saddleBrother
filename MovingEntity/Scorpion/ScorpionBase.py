@@ -20,10 +20,12 @@ class ScorpionBase(MovingEntityBase.MovingEntityBase):
         super().__init__(sprite)
         self.awareness = 3 * GlobalInfo.IMAGE_SIZE
         self.attack_range = 0 * GlobalInfo.IMAGE_SIZE + 10  # Melee distance
+        self.health = 10
         self.__target_types = [EnumTypes.MovingType.SCORPION, EnumTypes.MovingType.CHARACTER]
         self.__target = None
         self.__state = ScorpionIdle.ScorpionIdle()
         self.current_state = ValidStates.IDLE
+        self.__state.enter_state(self)
 
     def next_move(self):
         self.__state.next_move(self)
@@ -42,10 +44,10 @@ class ScorpionBase(MovingEntityBase.MovingEntityBase):
             self.__state.enter_state(self)
 
     def update(self):
+        if self.health <= 0:
+            self.remove_from_sprite_lists()
         self.next_move()
         for sprite_list in MovingEntityHandler.MovingEntityHandler.movingTypes.values():
             MovementComponent.account_for_collision_list(self, sprite_list)
-        # player_list = MovingEntityHandler.MovingEntityHandler.movingTypes[EnumTypes.MovingType.CHARACTER]
-        # MovementComponent.account_for_collision_list(self, player_list)
         super().update()
 

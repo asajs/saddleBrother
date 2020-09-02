@@ -19,5 +19,9 @@ class MovingType(Enum):
     CHARACTER = "saddlebrother.png"
 
 
-class ItemType(Enum):
-    PICKUP_LASSO = "lasso.png"
+class PickupItemType(Enum):
+    PICKUP_LASSO = "lassoGround.png"
+
+
+class AttackItemType(Enum):
+    ATTACK_LASSO = "lasso.png"

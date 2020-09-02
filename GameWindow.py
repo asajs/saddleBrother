@@ -29,7 +29,7 @@ class GameWindow(arcade.View):
 
         self.moving_entity_handler.add_type(EnumTypes.MovingType.SCORPION)
         self.moving_entity_handler.add_type(EnumTypes.MovingType.CHARACTER)
-        self.items.add_type(EnumTypes.ItemType.PICKUP_LASSO)
+        self.items.add_type(EnumTypes.PickupItemType.PICKUP_LASSO)
 
     def on_draw(self):
         arcade.start_render()
@@ -134,12 +134,15 @@ class GameWindow(arcade.View):
         MovingEntityHandler.MovingEntityHandler.movingTypes[EnumTypes.MovingType.CHARACTER][0].on_mouse_press(x,
                                                                                                               y,
                                                                                                               button,
-                                                                                                              modifiers)
+                                                                                                              modifiers,
+                                                                                                              self.view_left,
+                                                                                                              self.view_bottom)
+        if button == arcade.MOUSE_BUTTON_MIDDLE:
+            i = 0
+            while i < 20:
+                MovingEntityHandler.MovingEntityHandler.add_type(EnumTypes.MovingType.SCORPION)
+                i += 1
 
-        i = 0
-        while i < 20:
-            MovingEntityHandler.MovingEntityHandler.add_type(EnumTypes.MovingType.SCORPION)
-            i += 1
         # if self.player.lasso_count == 0:
         #     return
         #

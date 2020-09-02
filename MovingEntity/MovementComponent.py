@@ -38,7 +38,7 @@ def move(sprite):
 
 
 def account_for_collision_list(sprite, sprite_list):
-    collisions = arcade.check_for_collision_with_list(sprite, sprite_list)
+    collisions = detect_collision_with_sprite_list(sprite, sprite_list)
     if collisions:
         collide = collisions.pop()
 
@@ -65,7 +65,11 @@ def account_for_collision_list(sprite, sprite_list):
             sprite.right = collide.left - 1
 
     return collisions
-            
+
+
+def detect_collision_with_sprite_list(sprite, sprite_list):
+    return arcade.check_for_collision_with_list(sprite, sprite_list)
+
 
 def update(sprite):
     sprite.center_x += sprite.change_x
