@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['saddlebrother.py'],
-             pathex=['C:\\Users\\Asa\\Documents\\SaddleBrother'],
+             pathex=['C:\\Users\\Asa\\Programming\\saddleBrother'],
              binaries=[],
              datas=[],
              hiddenimports=[],
